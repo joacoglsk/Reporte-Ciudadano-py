@@ -1,19 +1,86 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+} from "react-native";
 import { useAuth } from "../auth/AuthProvider";
+
 export default function Login() {
-  const { login } = useAuth();
+  const { login, loading } = useAuth();
+
   return (
-    <View style={styles.c}>
-      <Text style={styles.t}>Reporte Ciudadano</Text>
-      <TouchableOpacity style={styles.btn} onPress={login}>
-        <Text style={{ color: "#fff" }}>Ingresar con Auth0</Text>
-      </TouchableOpacity>
+    <View style={styles.container}>
+      <Image
+        source={{
+          uri: "https://cdn-icons-png.flaticon.com/512/984/984196.png",
+        }}
+        style={styles.logo}
+      />
+
+      <Text style={styles.title}>Reporte Ciudadano</Text>
+      <Text style={styles.subtitle}>Iniciá sesión con Auth0 para continuar</Text>
+
+      {loading ? (
+        <ActivityIndicator size="large" color="#6A1B9A" />
+      ) : (
+        <TouchableOpacity style={styles.button} onPress={login}>
+          <Text style={styles.buttonText}>Iniciar sesión con Auth0</Text>
+        </TouchableOpacity>
+      )}
+
+      <Text style={styles.footer}>
+        Tu sesión es segura y gestionada con Auth0 🔒
+      </Text>
     </View>
   );
 }
+
 const styles = StyleSheet.create({
-  c: { flex: 1, justifyContent: "center", alignItems: "center" },
-  t: { fontSize: 28, marginBottom: 20, fontWeight: "bold", color: "#6A1B9A" },
-  btn: { backgroundColor: "#6A1B9A", padding: 14, borderRadius: 8 },
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingHorizontal: 24,
+  },
+  logo: {
+    width: 120,
+    height: 120,
+    marginBottom: 24,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: "bold",
+    color: "#6A1B9A",
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#555",
+    marginBottom: 24,
+    textAlign: "center",
+  },
+  button: {
+    backgroundColor: "#6A1B9A",
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  footer: {
+    fontSize: 14,
+    color: "#888",
+    textAlign: "center",
+    marginTop: 10,
+  },
 });

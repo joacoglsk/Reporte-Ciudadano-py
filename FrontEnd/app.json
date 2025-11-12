@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Reporte Ciudadano",
+    "slug": "reporte-ciudadano",
+    "scheme": "com.joacoglsk.reporteciudadano",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#6A1B9A"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "tu-id-de-expo"
+      }
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
+  }
+}

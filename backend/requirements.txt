@@ -1,0 +1,28 @@
+# Framework principal
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+
+# ORM y base de datos
+sqlalchemy==2.0.36
+psycopg2-binary==2.9.9
+python-multipart==0.0.20
+
+# Seguridad y autenticación
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.3.0
+python-dotenv==1.0.1
+
+# IA y PDF
+openai==1.55.3
+reportlab==4.4.4
+
+# Utilidades
+pydantic==2.11.1
+requests==2.32.3
+httpx==0.28.1
+
+# Fechas, logs y otros
+anyio==4.10.0
+tqdm==4.67.1
+
+fpdf==1.7.2

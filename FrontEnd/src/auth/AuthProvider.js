@@ -1,47 +1,82 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import Auth0 from "react-native-auth0";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import * as AuthSession from "expo-auth-session";
 import * as SecureStore from "expo-secure-store";
-import api from "../api/client";
+import { Alert } from "react-native";
 
-const auth0 = new Auth0({
-    domain: process.env.EXPO_PUBLIC_AUTH0_DOMAIN,
-    clientId: process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID,
+const AuthContext = createContext();
+export const useAuth = () => useContext(AuthContext);
+
+// === VARIABLES DE ENTORNO ===
+const domain = process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
+const clientId = process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID;
+const audience = process.env.EXPO_PUBLIC_AUTH0_AUDIENCE; // 👈 Agregado
+
+// === Redirect URI generado automáticamente por Expo ===
+const redirectUri = AuthSession.makeRedirectUri({
+    scheme: "com.joacoglsk.reporteciudadano",
     });
-
-    const AuthContext = createContext(null);
-    export const useAuth = () => useContext(AuthContext);
 
     export default function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => { (async () => {
+    // Recupera token guardado si existe
+    useEffect(() => {
+        (async () => {
         const token = await SecureStore.getItemAsync("access_token");
-        if (token) await hydrate(token);
+        if (token) setUser({ token });
         setLoading(false);
-    })(); }, []);
+        })();
+    }, []);
 
-    const hydrate = async (token) => {
-        try {
-        const info = await auth0.auth.userInfo({ token });
-        const { data } = await api.post("/perfil/sync", {
-            sub: info.sub, email: info.email, name: info.name, picture: info.picture,
-        });
-        setUser({ ...info, roles: [data.role] });
-        } catch { setUser(null); }
-    };
-
+    // === LOGIN CON AUTH0 ===
     const login = async () => {
-        const creds = await auth0.webAuth.authorize({ scope: "openid profile email" });
-        await SecureStore.setItemAsync("access_token", creds.accessToken);
-        await hydrate(creds.accessToken);
+        try {
+        const discovery = {
+            authorizationEndpoint: `https://${domain}/authorize`,
+            tokenEndpoint: `https://${domain}/oauth/token`,
+            revocationEndpoint: `https://${domain}/oauth/revoke`,
+        };
+
+        console.log("🔗 Redirect URI generada por Expo:", redirectUri);
+
+        const request = new AuthSession.AuthRequest({
+            clientId,
+            redirectUri,
+            scopes: ["openid", "profile", "email"],
+            responseType: AuthSession.ResponseType.Token,
+            extraParams: {
+            audience,        // 👈 NECESARIO para obtener un access_token válido para tu API
+            prompt: "login", // 👈 fuerza a elegir cuenta cada vez (opcional)
+            },
+        });
+
+        const result = await request.promptAsync(discovery);
+
+        if (result.type === "success" && result.authentication?.accessToken) {
+            console.log("🧩 Token recibido:", result.authentication.accessToken); // 👈 Agregá esto
+            await SecureStore.setItemAsync("access_token", result.authentication.accessToken);
+            setUser({ token: result.authentication.accessToken });
+            console.log("✅ Login exitoso. Token guardado en SecureStore.");
+        } else {
+            Alert.alert("Error", "No se pudo iniciar sesión con Auth0.");
+            console.log("❌ Resultado inesperado:", result);
+        }
+        } catch (error) {
+        console.error("💥 Error en login:", error);
+        }
     };
 
+    // === LOGOUT ===
     const logout = async () => {
-        try { await auth0.webAuth.clearSession(); } catch {}
         await SecureStore.deleteItemAsync("access_token");
         setUser(null);
+        console.log("👋 Sesión cerrada correctamente.");
     };
 
-    return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>;
+    return (
+        <AuthContext.Provider value={{ user, loading, login, logout }}>
+        {children}
+        </AuthContext.Provider>
+    );
 }
