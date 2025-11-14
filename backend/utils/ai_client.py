@@ -1,13 +1,22 @@
-import openai, os
-openai.api_key = os.getenv("OPENAI_API_KEY")
+import os
+from google import genai
 
 def query_ai(prompt: str):
-  try:
-    resp = openai.ChatCompletion.create(
-      model="gpt-3.5-turbo",
-      messages=[{"role":"user","content":prompt}],
-      max_tokens=120,
-    )
-    return resp.choices[0].message.content.strip()
-  except:
-    return "Error generando respuesta."
+    try:
+        # Inicializar cliente con clave desde variables de entorno
+        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+
+        print("📩 Mensaje enviado a la IA:", prompt)
+
+        # Enviar prompt al modelo Gemini
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
+        )
+
+        # Extraer texto de la respuesta
+        return response.text
+
+    except Exception as e:
+        print("💥 ERROR EN IA:", e)
+        return "Error generando respuesta."

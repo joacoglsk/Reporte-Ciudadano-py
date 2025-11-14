@@ -9,27 +9,35 @@ export const useAuth = () => useContext(AuthContext);
 // === VARIABLES DE ENTORNO ===
 const domain = process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
 const clientId = process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID;
-const audience = process.env.EXPO_PUBLIC_AUTH0_AUDIENCE; // 👈 Agregado
+const audience = process.env.EXPO_PUBLIC_AUTH0_AUDIENCE;
 
-// === Redirect URI generado automáticamente por Expo ===
+// === Redirect URI generado por Expo ===
 const redirectUri = AuthSession.makeRedirectUri({
     scheme: "com.joacoglsk.reporteciudadano",
     });
 
     export default function AuthProvider({ children }) {
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(null);      // { token, name, email, picture }
+    const [token, setToken] = useState(null);    // 👈 Necesitamos token separado
     const [loading, setLoading] = useState(true);
 
-    // Recupera token guardado si existe
+    // === Al iniciar la app: intenta recuperar token guardado ===
     useEffect(() => {
         (async () => {
-        const token = await SecureStore.getItemAsync("access_token");
-        if (token) setUser({ token });
-        setLoading(false);
+        const savedToken = await SecureStore.getItemAsync("access_token");
+
+        if (savedToken) {
+            console.log("🔐 Token recuperado:", savedToken);
+
+            setToken(savedToken);
+            setUser({ token: savedToken });  // Mantenemos compatibilidad
+        }
+
+        setLoading(false);  // 👈 SIEMPRE TERMINA
         })();
     }, []);
 
-    // === LOGIN CON AUTH0 ===
+    // === LOGIN ===
     const login = async () => {
         try {
         const discovery = {
@@ -38,26 +46,30 @@ const redirectUri = AuthSession.makeRedirectUri({
             revocationEndpoint: `https://${domain}/oauth/revoke`,
         };
 
-        console.log("🔗 Redirect URI generada por Expo:", redirectUri);
-
         const request = new AuthSession.AuthRequest({
             clientId,
             redirectUri,
             scopes: ["openid", "profile", "email"],
             responseType: AuthSession.ResponseType.Token,
             extraParams: {
-            audience,        // 👈 NECESARIO para obtener un access_token válido para tu API
-            prompt: "login", // 👈 fuerza a elegir cuenta cada vez (opcional)
+            audience, // NECESARIO para tu API
+            prompt: "login",
             },
         });
 
         const result = await request.promptAsync(discovery);
 
         if (result.type === "success" && result.authentication?.accessToken) {
-            console.log("🧩 Token recibido:", result.authentication.accessToken); // 👈 Agregá esto
-            await SecureStore.setItemAsync("access_token", result.authentication.accessToken);
-            setUser({ token: result.authentication.accessToken });
-            console.log("✅ Login exitoso. Token guardado en SecureStore.");
+            const accessToken = result.authentication.accessToken;
+
+            console.log("🧩 Token recibido:", accessToken);
+
+            await SecureStore.setItemAsync("access_token", accessToken);
+
+            setToken(accessToken);
+            setUser({ token: accessToken });
+
+            console.log("✅ Login exitoso, token guardado.");
         } else {
             Alert.alert("Error", "No se pudo iniciar sesión con Auth0.");
             console.log("❌ Resultado inesperado:", result);
@@ -71,11 +83,12 @@ const redirectUri = AuthSession.makeRedirectUri({
     const logout = async () => {
         await SecureStore.deleteItemAsync("access_token");
         setUser(null);
+        setToken(null);
         console.log("👋 Sesión cerrada correctamente.");
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout }}>
+        <AuthContext.Provider value={{ user, token, loading, login, logout }}>
         {children}
         </AuthContext.Provider>
     );

@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from utils.ai_client import query_ai
-from auth import get_current_user
+from auth0 import verify_jwt   # 👈 usar el mismo validador que reportes
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 class ChatIn(BaseModel):
-  message:str
+    message: str
 
 @router.post("/")
-def chat(body: ChatIn, user=Depends(get_current_user)):
-  return {"reply": query_ai(body.message)}
+def chat(body: ChatIn, user=Depends(verify_jwt)):  # 👈 CAMBIO CLAVE
+    return {"reply": query_ai(body.message)}
+

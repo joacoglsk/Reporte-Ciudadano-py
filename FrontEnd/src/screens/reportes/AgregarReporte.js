@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,8 +11,11 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import MapView, { Marker } from "react-native-maps";
 import api from "../../api/client";
+import { useAuth } from "../../auth/AuthProvider";
 
 export default function AgregarReporte({ navigation }) {
+  const { user } = useAuth(); // 🔑 ahora obtenemos user completo (incluye token real)
+
   const [descripcion, setDescripcion] = useState("");
   const [imagen, setImagen] = useState(null);
   const [ubicacion, setUbicacion] = useState({
@@ -20,17 +23,31 @@ export default function AgregarReporte({ navigation }) {
     longitude: -71.3534,
   });
 
+  // === Permiso para acceder a galería ===
+  useEffect(() => {
+    (async () => {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permiso requerido",
+          "Necesitamos acceso a tu galería para seleccionar imágenes."
+        );
+      }
+    })();
+  }, []);
+
   // === Seleccionar imagen ===
   const seleccionarImagen = async () => {
     try {
-      const r = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images, // ✅ volvimos al formato que funciona
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
         quality: 1,
       });
 
-      if (!r.canceled) {
-        setImagen(r.assets[0].uri);
-        console.log("📸 Imagen seleccionada:", r.assets[0].uri);
+      if (!result.canceled) {
+        setImagen(result.assets[0].uri);
+        console.log("📸 Imagen seleccionada:", result.assets[0].uri);
       } else {
         console.log("🚫 Selección de imagen cancelada");
       }
@@ -53,6 +70,11 @@ export default function AgregarReporte({ navigation }) {
       return;
     }
 
+    if (!user?.token) {
+      Alert.alert("Error", "No hay token. Iniciá sesión nuevamente.");
+      return;
+    }
+
     try {
       const nuevoReporte = {
         descripcion,
@@ -65,18 +87,19 @@ export default function AgregarReporte({ navigation }) {
 
       console.log("📤 Enviando reporte:", nuevoReporte);
 
-      const response = await api.post("/reportes", nuevoReporte);
+      const response = await api.post("/reportes", nuevoReporte, {
+        headers: {
+          Authorization: `Bearer ${user.token}`, // 🔥 TOKEN REAL ENVIADO
+        },
+      });
 
       if (response.status === 200 || response.status === 201) {
         Alert.alert("✅ Éxito", "Tu reporte fue registrado correctamente.", [
           { text: "OK", onPress: () => navigation.goBack() },
         ]);
-      } else {
-        console.log("❌ Respuesta inesperada:", response.status, response.data);
-        Alert.alert("Error", "No se pudo enviar el reporte. Intenta nuevamente.");
       }
     } catch (error) {
-      console.error("💥 Error al enviar reporte:", error.message);
+      console.error("💥 Error al enviar reporte:", error);
       Alert.alert("Error", "No se pudo conectar con el servidor.");
     }
   };

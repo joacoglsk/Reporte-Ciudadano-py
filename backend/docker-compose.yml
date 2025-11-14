@@ -19,8 +19,8 @@ services:
     env_file:
       - .env
     environment:
-      # 🔹 Asegura que DATABASE_URL apunte al servicio 'db' (no localhost)
       DATABASE_URL: postgresql+psycopg2://rc_user:rc_pass@db:5432/rc_db
+      GEMINI_API_KEY: ${GEMINI_API_KEY}   # 🟣 CORRECTO: lee la variable desde .env
     depends_on:
       - db
     ports:
@@ -28,7 +28,6 @@ services:
     command: >
       sh -c "python -c 'import time; time.sleep(3)' &&
          python -m uvicorn main:app --host 0.0.0.0 --port 8000"
-
 
 volumes:
   pgdata:
