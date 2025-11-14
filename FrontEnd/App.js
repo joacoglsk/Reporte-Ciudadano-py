@@ -2,8 +2,11 @@ import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { MaterialIcons } from "@expo/vector-icons";
+
 import AuthProvider, { useAuth } from "./src/auth/AuthProvider";
 import ThemeProvider from "./src/theme/ThemeProvider";
+
 import SplashScreen from "./src/auth/SplashScreen";
 import Login from "./src/screens/Login";
 import Home from "./src/screens/Home";
@@ -21,8 +24,31 @@ const Tab = createBottomTabNavigator();
 function Tabs() {
   const { user } = useAuth();
   const isAdmin = user?.roles?.includes("admin");
+
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false }}>
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: "#6A1B9A",
+        tabBarInactiveTintColor: "#666",
+        tabBarStyle: { backgroundColor: "#FFF", height: 60 },
+
+        tabBarIcon: ({ color, size }) => {
+          let iconName;
+
+          switch (route.name) {
+            case "Home": iconName = "home"; break;
+            case "Mapa": iconName = "map"; break;
+            case "Reportes": iconName = "description"; break;
+            case "Chat": iconName = "chat"; break;
+            case "Perfil": iconName = "person"; break;
+            case "Productos": iconName = "inventory"; break;
+          }
+
+          return <MaterialIcons name={iconName} size={28} color={color} />;
+        },
+      })}
+    >
       <Tab.Screen name="Home" component={Home} />
       <Tab.Screen name="Mapa" component={Mapa} />
       <Tab.Screen name="Reportes" component={ListaReportes} />
@@ -36,6 +62,7 @@ function Tabs() {
 function RootNavigator() {
   const { loading, user } = useAuth();
   if (loading) return <SplashScreen />;
+
   return (
     <Stack.Navigator>
       {user ? (
