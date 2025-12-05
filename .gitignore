@@ -14,15 +14,13 @@ backend/__pycache__/
 *.pyo
 *.pyd
 __pycache__/
-*.env
 venv/
 
 # Archivos temporales
 .DS_Store
 Thumbs.db
 *.log
-.env
-.env.*
+
 
 # Otros
 .idea/
