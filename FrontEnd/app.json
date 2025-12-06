@@ -2,7 +2,7 @@
   "expo": {
     "name": "Reporte Ciudadano",
     "slug": "reporte-ciudadano",
-    "scheme": "com.joacoglsk.reporteciudadano",
+    "scheme": "com.joacoglsk.reporteciudadano://auth",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
@@ -20,11 +20,15 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "tu-id-de-expo"
+        "projectId": "d2c7e54f-3e46-4650-9a93-5b957c37829e"
       }
     },
     "plugins": [
       "expo-secure-store"
-    ]
+    ],
+    "owner": "joacoglsk",
+    "android": {
+      "package": "com.joacoglsk.reporteciudadano"
+    }
   }
 }
