@@ -13,83 +13,107 @@ const audience = process.env.EXPO_PUBLIC_AUTH0_AUDIENCE;
 
 // === Redirect URI generado por Expo ===
 const redirectUri = AuthSession.makeRedirectUri({
-    scheme: "com.joacoglsk.reporteciudadano",
-    });
+  scheme: "com.joacoglsk.reporteciudadano",
+  preferLocalhost: false,
+});
 
-    export default function AuthProvider({ children }) {
-    const [user, setUser] = useState(null);      // { token, name, email, picture }
-    const [token, setToken] = useState(null);    // 👈 Necesitamos token separado
-    const [loading, setLoading] = useState(true);
+export default function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-    // === Al iniciar la app: intenta recuperar token guardado ===
-    useEffect(() => {
-        (async () => {
-        const savedToken = await SecureStore.getItemAsync("access_token");
+  // === Recuperar token al abrir app ===
+  useEffect(() => {
+    (async () => {
+      const savedToken = await SecureStore.getItemAsync("access_token");
 
-        if (savedToken) {
-            console.log("🔐 Token recuperado:", savedToken);
+      if (savedToken) {
+        console.log("🔐 Token recuperado:", savedToken);
 
-            setToken(savedToken);
-            setUser({ token: savedToken });  // Mantenemos compatibilidad
-        }
+        setToken(savedToken);
+        setUser({ token: savedToken });
+      }
 
-        setLoading(false);  // 👈 SIEMPRE TERMINA
-        })();
-    }, []);
+      setLoading(false);
+    })();
+  }, []);
 
-    // === LOGIN ===
-    const login = async () => {
-        try {
-        const discovery = {
-            authorizationEndpoint: `https://${domain}/authorize`,
-            tokenEndpoint: `https://${domain}/oauth/token`,
-            revocationEndpoint: `https://${domain}/oauth/revoke`,
-        };
+  // === LOGIN ===
+  const login = async () => {
+    try {
+      const discovery = {
+        authorizationEndpoint: `https://${domain}/authorize`,
+        tokenEndpoint: `https://${domain}/oauth/token`,
+        revocationEndpoint: `https://${domain}/oauth/revoke`,
+      };
 
-        const request = new AuthSession.AuthRequest({
-            clientId,
-            redirectUri,
-            scopes: ["openid", "profile", "email"],
-            responseType: AuthSession.ResponseType.Token,
-            extraParams: {
-            audience, // NECESARIO para tu API
-            prompt: "login",
-            },
+      const request = new AuthSession.AuthRequest({
+        clientId,
+        redirectUri,
+        scopes: ["openid", "profile", "email"],
+        responseType: AuthSession.ResponseType.Code, // 🔄 PKCE obligatorio
+        usePKCE: true,
+        extraParams: {
+          audience,
+          prompt: "login",
+        },
+      });
+
+      const result = await request.promptAsync(discovery);
+
+      // === NUEVO: ya no devuelve accessToken, devuelve "code" ===
+      if (result.type === "success" && result.params.code) {
+        const code = result.params.code;
+
+        // === Intercambiar code por access_token ===
+        const tokenResponse = await fetch(`https://${domain}/oauth/token`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            grant_type: "authorization_code",
+            client_id: clientId,
+            code: code,
+            redirect_uri: redirectUri,
+            code_verifier: request.codeVerifier, // 🔥 NECESARIO PARA PKCE
+          }),
         });
 
-        const result = await request.promptAsync(discovery);
+        const data = await tokenResponse.json();
+        const access_token = data.access_token;
 
-        if (result.type === "success" && result.authentication?.accessToken) {
-            const accessToken = result.authentication.accessToken;
+        if (access_token) {
+          console.log("🔑 Token recibido:", access_token);
 
-            console.log("🧩 Token recibido:", accessToken);
+          await SecureStore.setItemAsync("access_token", access_token);
 
-            await SecureStore.setItemAsync("access_token", accessToken);
+          setToken(access_token);
+          setUser({ token: access_token });
 
-            setToken(accessToken);
-            setUser({ token: accessToken });
-
-            console.log("✅ Login exitoso, token guardado.");
+          console.log("✅ Login exitoso con Auth0 + PKCE");
+          return;
         } else {
-            Alert.alert("Error", "No se pudo iniciar sesión con Auth0.");
-            console.log("❌ Resultado inesperado:", result);
+          console.log("❌ Error obteniendo token:", data);
         }
-        } catch (error) {
-        console.error("💥 Error en login:", error);
-        }
-    };
+      } else {
+        Alert.alert("Error", "No se pudo iniciar sesión.");
+        console.log("❌ Resultado inesperado:", result);
+      }
+    } catch (error) {
+      console.error("💥 Error en login:", error);
+    }
+  };
 
-    // === LOGOUT ===
-    const logout = async () => {
-        await SecureStore.deleteItemAsync("access_token");
-        setUser(null);
-        setToken(null);
-        console.log("👋 Sesión cerrada correctamente.");
-    };
+  // === LOGOUT ===
+  const logout = async () => {
+    await SecureStore.deleteItemAsync("access_token");
+    setUser(null);
+    setToken(null);
+    console.log("👋 Sesión cerrada correctamente.");
+  };
 
-    return (
-        <AuthContext.Provider value={{ user, token, loading, login, logout }}>
-        {children}
-        </AuthContext.Provider>
-    );
+  return (
+    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
