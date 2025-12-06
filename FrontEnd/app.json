@@ -2,7 +2,7 @@
   "expo": {
     "name": "Reporte Ciudadano",
     "slug": "reporte-ciudadano",
-    "scheme": "com.joacoglsk.reporteciudadano://auth",
+    "scheme": "com.joacoglsk.reporteciudadano",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
