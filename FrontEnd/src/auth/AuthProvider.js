@@ -14,7 +14,6 @@ const audience = process.env.EXPO_PUBLIC_AUTH0_AUDIENCE;
 // === Redirect URI generado por Expo ===
 const redirectUri = AuthSession.makeRedirectUri({
   scheme: "com.joacoglsk.reporteciudadano",
-  preferLocalhost: false,
 });
 
 export default function AuthProvider({ children }) {
